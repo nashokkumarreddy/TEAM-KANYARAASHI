@@ -1,187 +1,118 @@
 # ⚡ Real-time Neutral Conductor Breakage Detection
 **Smart India Hackathon 2025 – Team KANYARAASHI**
 
-## 🔹 Introduction
-In low-voltage power distribution, the **neutral conductor** plays a vital role in balancing voltages.  
-If the neutral breaks, it can cause:
-- Unbalanced voltages  
-- Damage to electrical equipment  
-- Fire hazards and safety risks  
+# Real-Time Neutral Conductor Breakage Detection
 
-This project provides **real-time detection of neutral breakage** using Arduino, ACS712 sensors, and automatic relay disconnection.
+## 📌 Project Overview
+This project is designed to **detect neutral conductor breakage in low-voltage distribution networks** in real-time.  
+The system continuously monitors phase-to-neutral voltages and current, detects abnormal imbalance conditions, and immediately takes protective actions such as **alerting the user** or **disconnecting the supply** via a relay.
 
----
-
-## 🔹 Features
-- ✅ Continuous monitoring of phase currents  
-- ✅ Real-time fault detection  
-- ✅ Relay-based disconnection to protect appliances  
-- ✅ Audible buzzer alerts  
-- ✅ Low-cost, scalable, IoT-ready solution  
+This solution is a **low-cost, scalable, and real-time protective system** aimed at enhancing safety in households, industries, and distribution networks.
 
 ---
 
-## 🔹 Components Used
-- Arduino UNO  
-- ACS712 Current Sensors (3x)  
-- LCD Display  
-- Relay Module  
-- Buzzer  
-- Breadboard, wires, power supply  
+## ⚡ Problem Statement
+In low-voltage power distribution:
+- The **neutral conductor** is critical for maintaining balanced voltages.
+- A **neutral break** can cause:
+  - Unbalanced voltages  
+  - Equipment damage  
+  - Fire hazards  
+  - Serious safety risks  
+
+Current protective devices (MCBs, RCCBs, fuses) **do not detect neutral breakage in real-time**, hence the need for this system.
 
 ---
 
-## 🔹 Circuit Diagram
-![Circuit Diagram](![Circuit Diagram](https://github.com/user-attachments/assets/6b58a4d8-0def-4e75-a846-940a4937667d)
-)
+## 🎯 Objectives
+- Continuous monitoring of voltages across all three phases with respect to neutral.
+- Detect unbalanced conditions that indicate a neutral conductor break.
+- Take immediate action:
+  - Trigger buzzer alerts.  
+  - Disconnect supply via relay.  
+  - Optionally send IoT-based alerts (using GSM/Internet).
 
 ---
 
-## 🔹 Working Principle
-- The ACS712 sensors measure current on each phase.  
-- If the **neutral current imbalance** exceeds the threshold, the system detects a fault.  
-- Relay disconnects supply, and the buzzer alerts the user.  
-- Data can be extended to IoT dashboards for remote monitoring.  
+## 🛠️ Hardware Components
+- **Arduino Uno** (microcontroller for processing & control)  
+- **ACS712 Current Sensors** (to measure phase currents)  
+- **5SMU1B Voltage Sensor** (to measure phase voltages)  
+- **Relay Module** (to disconnect load during neutral fault)  
+- **Buzzer** (for audible alerts)  
+- **SIM800L GSM Module** (for IoT/remote user alerts)  
+- **12V Power Supply** (for relay & modules)  
+- Breadboard, jumper wires, and connectors  
 
 ---
 
-## 🔹 Code
-Code is available in the [Code/NeutralBreakage.ino](// ---------------------------
-// Pin Configuration
-// ---------------------------
-#define VOLTAGE_SENSOR_L1 A0
-#define VOLTAGE_SENSOR_L2 A1
-#define VOLTAGE_SENSOR_L3 A2
-#define VOLTAGE_SENSOR_N  A3
+## 🔌 Circuit Diagram
+Below is the implemented circuit:  
 
-#define CURRENT_SENSOR_L1 A4
-#define CURRENT_SENSOR_L2 A5
-#define CURRENT_SENSOR_L3 A6
-#define CURRENT_SENSOR_N  A7
+![Circuit Diagram](Circuit%20Diagram.jpg)
 
-#define RELAY_PIN   8
-#define BUZZER_PIN  9
-
-// ---------------------------
-// Calibration Factors (Change according to your sensors)
-// ---------------------------
-// Example for ZMPT101B voltage sensor
-float voltage_factor = 0.1;  // Volts per ADC step (to be tuned)
-
-// Example for ACS712 current sensor (30A version → 66mV/A)
-// With 5V ADC → 1023 steps → ~4.9mV/step
-float current_factor = 0.066 / 0.0049;   // ~13.5 A per ADC step
-float current_offset = 512;              // Midpoint of ACS712 (no current)
-
-// ---------------------------
-// Thresholds (tune experimentally)
-// ---------------------------
-float NEUTRAL_CURRENT_THRESHOLD = 0.2;   // Amps
-float VOLTAGE_DIFF_THRESHOLD    = 15.0;  // Volts imbalance
-
-// ---------------------------
-// Variables
-// ---------------------------
-float voltageL1, voltageL2, voltageL3, voltageN;
-float currentL1, currentL2, currentL3, currentN;
-float neutralCurrent;
-
-void setup() {
-  Serial.begin(9600);
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
-  digitalWrite(BUZZER_PIN, LOW);
-}
-
-// ---------------------------
-// Helper Functions
-// ---------------------------
-
-// Convert raw ADC to voltage (RMS needs extra calculation, simplified here)
-float readVoltage(int pin) {
-  int raw = analogRead(pin);
-  return raw * voltage_factor;
-}
-
-// Convert raw ADC to current (centered around 512 for ACS712)
-float readCurrent(int pin) {
-  int raw = analogRead(pin);
-  return (raw - current_offset) * current_factor;
-}
-
-void loop() {
-  // Read and convert voltage sensors
-  voltageL1 = readVoltage(VOLTAGE_SENSOR_L1);
-  voltageL2 = readVoltage(VOLTAGE_SENSOR_L2);
-  voltageL3 = readVoltage(VOLTAGE_SENSOR_L3);
-  voltageN  = readVoltage(VOLTAGE_SENSOR_N);
-
-  // Read and convert current sensors
-  currentL1 = readCurrent(CURRENT_SENSOR_L1);
-  currentL2 = readCurrent(CURRENT_SENSOR_L2);
-  currentL3 = readCurrent(CURRENT_SENSOR_L3);
-  currentN  = readCurrent(CURRENT_SENSOR_N);
-
-  // Compute Neutral Current Imbalance
-  neutralCurrent = abs((currentL1 + currentL2 + currentL3) - currentN);
-
-  // ---------------------------
-  // Fault Detection
-  // ---------------------------
-  bool neutralBreak = false;
-
-  // Condition 1: Neutral current is too low (open neutral condition)
-  if (neutralCurrent < NEUTRAL_CURRENT_THRESHOLD) {
-    neutralBreak = true;
-  }
-
-  // Condition 2: Voltage imbalance (Zero-sequence voltage abnormal)
-  float avgVoltage = (voltageL1 + voltageL2 + voltageL3) / 3.0;
-  if (abs(voltageL1 - avgVoltage) > VOLTAGE_DIFF_THRESHOLD ||
-      abs(voltageL2 - avgVoltage) > VOLTAGE_DIFF_THRESHOLD ||
-      abs(voltageL3 - avgVoltage) > VOLTAGE_DIFF_THRESHOLD) {
-    neutralBreak = true;
-  }
-
-  // ---------------------------
-  // Trip Signal
-  // ---------------------------
-  if (neutralBreak) {
-    digitalWrite(RELAY_PIN, HIGH);
-    digitalWrite(BUZZER_PIN, HIGH);
-    Serial.println("⚠ NEUTRAL BREAKAGE DETECTED → TRIP!");
-    // Optional: Send SMS via GSM module here
-  } else {
-    digitalWrite(RELAY_PIN, LOW);
-    digitalWrite(BUZZER_PIN, LOW);
-    Serial.println("System Normal");
-  }
-
-  // Print Debug Info
-  Serial.print("Neutral Current: ");
-  Serial.print(neutralCurrent);
-  Serial.print(" A | Voltages: ");
-  Serial.print(voltageL1); Serial.print(" ");
-  Serial.print(voltageL2); Serial.print(" ");
-  Serial.print(voltageL3); Serial.print(" ");
-  Serial.print(voltageN);
-  Serial.println();
-
-  delay(500);  // 0.5s delay
-}) file.
+- **Voltage & current sensors** feed real-time data to Arduino.  
+- **Relay & buzzer** are controlled by Arduino based on fault detection.  
+- **SIM800L** provides communication for alerts.  
 
 ---
 
-## 🔹 Future Scope
-- IoT integration with cloud (MongoDB, dashboards)  
-- Predictive algorithms for better fault detection  
-- Scalable for industrial applications  
+## 💻 Software & Tools
+- **Arduino IDE** (for microcontroller programming in Embedded C++)  
+- **SQLite** (local storage of voltage/current logs)  
+- **MongoDB** (cloud storage for IoT-based monitoring)  
+- **MATLAB/Simulink** (optional for simulation and testing)  
+- **Security**: AES encryption & HTTPS for IoT communication  
 
 ---
 
-## 📌 Team
-**Team KANYARAASHI** – Smart India Hackathon 2025  
-Problem ID: **SIH25063**  
-Theme: **Disaster Management**  
+## ⚙️ Working Principle
+1. Measure **phase-to-neutral voltages** and **currents** in real-time.  
+2. Compare readings with expected balanced conditions.  
+3. If imbalance detected → conclude neutral breakage.  
+4. Immediate system response:  
+   - 🔔 Sound buzzer (local alert)  
+   - ⚡ Cut-off supply using relay  
+   - 📲 Send alert via GSM/IoT  
+
+---
+
+## 🚀 Features
+- **Real-Time Safety** → Detects neutral failures instantly.  
+- **Low-Cost** → Uses easily available sensors and Arduino.  
+- **Automatic Protection** → Prevents costly equipment damage.  
+- **IoT Ready** → Remote monitoring and alerts.  
+- **Easy Integration** → Can be added to existing power systems.  
+
+---
+
+## 📊 Feasibility & Challenges
+### ✔️ Feasibility:
+- Technically feasible using Arduino & IoT tools.  
+- Low-cost and scalable for homes and industries.  
+- Easy installation without major system modifications.  
+
+### ⚠️ Challenges:
+- Differentiating **normal voltage fluctuation vs. neutral breakage**.  
+- Sensor calibration for accuracy.  
+- Ensuring **real-time response** under load.  
+- Stable internet/power for IoT functionality.  
+
+---
+
+## 🌍 Impact & Benefits
+- **Enhanced Safety** → Prevents accidents & fire hazards.  
+- **Automatic Appliance Protection** → Prevents voltage imbalance damage.  
+- **User Awareness** → Provides instant alerts.  
+- **Scalable** → Can be used in households, industries, and smart grid applications.  
+
+---
+
+## 📚 References
+- IEEE Xplore: *Detection and Mitigation of Neutral Conductor Failures in Low-Voltage Networks*  
+- International Journal of Electrical Power & Energy Systems, 2021  
+- Indian Standards: IS 732, IS 3043  
+- Arduino IDE, MATLAB, MongoDB Documentation  
+- National Smart Grid Mission (Govt. of India)  
+
 
