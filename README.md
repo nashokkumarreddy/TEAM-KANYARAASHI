@@ -1,6 +1,3 @@
-# ⚡ Real-time Neutral Conductor Breakage Detection
-**Smart India Hackathon 2025 – Team KANYARAASHI**
-
 # Real-Time Neutral Conductor Breakage Detection
 
 ## 📌 Project Overview
@@ -37,7 +34,7 @@ Current protective devices (MCBs, RCCBs, fuses) **do not detect neutral breakage
 ## 🛠️ Hardware Components
 - **Arduino Uno** (microcontroller for processing & control)  
 - **ACS712 Current Sensors** (to measure phase currents)  
-- **5SMU1B Voltage Sensor** (to measure phase voltages)  
+- **ZMPT101B Voltage Sensors** (to measure phase voltages)  
 - **Relay Module** (to disconnect load during neutral fault)  
 - **Buzzer** (for audible alerts)  
 - **SIM800L GSM Module** (for IoT/remote user alerts)  
@@ -50,6 +47,104 @@ Current protective devices (MCBs, RCCBs, fuses) **do not detect neutral breakage
 Below is the implemented circuit:  
 
 ![Circuit Diagram](Circuit%20Diagram.jpg)
+## 🖥️ Arduino Code
+
+```cpp
+// ---------------------------
+// Pin Configuration
+// ---------------------------
+#define VOLTAGE_SENSOR_L1 A0
+#define VOLTAGE_SENSOR_L2 A1
+#define VOLTAGE_SENSOR_L3 A2
+#define VOLTAGE_SENSOR_N  A3
+
+#define CURRENT_SENSOR_L1 A4
+#define CURRENT_SENSOR_L2 A5
+#define CURRENT_SENSOR_L3 A6
+#define CURRENT_SENSOR_N  A7
+
+#define RELAY_PIN   8
+#define BUZZER_PIN  9
+
+// ---------------------------
+// Calibration Factors (Change according to your sensors)
+// ---------------------------
+// Example for ZMPT101B voltage sensor
+float voltage_factor = 0.1;  // Volts per ADC step (to be tuned)
+
+// Example for ACS712 current sensor (30A version → 66mV/A)
+// With 5V ADC → 1023 steps → ~4.9mV/step
+float current_factor = 0.066 / 0.0049;   // ~13.5 A per ADC step
+float current_offset = 512;              // Midpoint of ADC (no current)
+
+// ---------------------------
+// Setup
+// ---------------------------
+void setup() {
+  Serial.begin(9600);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH); // Relay ON initially
+  digitalWrite(BUZZER_PIN, LOW); // Buzzer OFF initially
+}
+
+// ---------------------------
+// Read Voltage
+// ---------------------------
+float readVoltage(int pin) {
+  int adc = analogRead(pin);
+  return adc * voltage_factor;
+}
+
+// ---------------------------
+// Read Current
+// ---------------------------
+float readCurrent(int pin) {
+  int adc = analogRead(pin);
+  float current = (adc - current_offset) * current_factor;
+  return current;
+}
+
+// ---------------------------
+// Loop
+// ---------------------------
+void loop() {
+  float vL1 = readVoltage(VOLTAGE_SENSOR_L1);
+  float vL2 = readVoltage(VOLTAGE_SENSOR_L2);
+  float vL3 = readVoltage(VOLTAGE_SENSOR_L3);
+  float vN  = readVoltage(VOLTAGE_SENSOR_N);
+
+  float cL1 = readCurrent(CURRENT_SENSOR_L1);
+  float cL2 = readCurrent(CURRENT_SENSOR_L2);
+  float cL3 = readCurrent(CURRENT_SENSOR_L3);
+  float cN  = readCurrent(CURRENT_SENSOR_N);
+
+  // Print values for debugging
+  Serial.print("Voltages: ");
+  Serial.print(vL1); Serial.print("V, ");
+  Serial.print(vL2); Serial.print("V, ");
+  Serial.print(vL3); Serial.print("V, ");
+  Serial.print("Neutral: "); Serial.print(vN); Serial.println("V");
+
+  Serial.print("Currents: ");
+  Serial.print(cL1); Serial.print("A, ");
+  Serial.print(cL2); Serial.print("A, ");
+  Serial.print(cL3); Serial.print("A, ");
+  Serial.print("Neutral: "); Serial.print(cN); Serial.println("A");
+
+  // Neutral breakage detection logic (simple imbalance check)
+  if (abs((vL1 - vN)) > 50 || abs((vL2 - vN)) > 50 || abs((vL3 - vN)) > 50) {
+    Serial.println("⚠️ Neutral Breakage Detected!");
+    digitalWrite(RELAY_PIN, LOW);   // Cut off load
+    digitalWrite(BUZZER_PIN, HIGH); // Turn buzzer ON
+  } else {
+    digitalWrite(RELAY_PIN, HIGH);  // Load connected
+    digitalWrite(BUZZER_PIN, LOW);  // Buzzer OFF
+  }
+
+  delay(1000); // 1 second delay
+}
+
 
 - **Voltage & current sensors** feed real-time data to Arduino.  
 - **Relay & buzzer** are controlled by Arduino based on fault detection.  
@@ -107,12 +202,4 @@ Below is the implemented circuit:
 - **Scalable** → Can be used in households, industries, and smart grid applications.  
 
 ---
-
-## 📚 References
-- IEEE Xplore: *Detection and Mitigation of Neutral Conductor Failures in Low-Voltage Networks*  
-- International Journal of Electrical Power & Energy Systems, 2021  
-- Indian Standards: IS 732, IS 3043  
-- Arduino IDE, MATLAB, MongoDB Documentation  
-- National Smart Grid Mission (Govt. of India)  
-
 
