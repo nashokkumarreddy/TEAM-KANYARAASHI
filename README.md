@@ -32,7 +32,8 @@ This project provides **real-time detection of neutral breakage** using Arduino,
 ---
 
 ## 🔹 Circuit Diagram
-![Circuit Diagram](Images/CircuitDiagram.png)
+![Circuit Diagram](![Circuit Diagram](https://github.com/user-attachments/assets/6b58a4d8-0def-4e75-a846-940a4937667d)
+)
 
 ---
 
@@ -45,7 +46,8 @@ This project provides **real-time detection of neutral breakage** using Arduino,
 ---
 
 ## 🔹 Code
-Code is available in the [Code/NeutralBreakage.ino](Code/NeutralBreakage.ino) file.
+Code is available in the [Code/NeutralBreakage.ino](![Circuit Diagram](https://github.com/user-attachments/assets/d7b5c535-62d4-4c41-a928-63e6a7e20bd6)
+) file.
 
 ---
 
